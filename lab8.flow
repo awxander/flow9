@@ -1,0 +1,93 @@
+import string;
+import ds/tree;
+import runtime;
+import sys/system;
+import math/math;
+import lingo/pegcode/parsic;
+import lingo/pegcode/driver;
+import fs/filesystem;
+import ds/array;
+import mygrammar8;
+
+arithGrammarOp: ref Maybe<[PegOp]> = ref None();
+
+initGrammar() {
+	onlyOnce(arithGrammarOp, \ -> {
+		compilePegGrammar("#include lingo.lingo");
+	});
+}
+
+calcAST(e : Expr, vars : Tree<string, int>) -> Maybe<int> {
+	switch(e) {
+		Var(symbol) : {
+			switch(lookupTree(vars, symbol)) {
+				Some(val): Some(val);
+				None(): {
+					println("variable is not initialized");
+					None();
+				};
+			}
+		}
+		Int(const) : {
+			Some(const);
+		}
+		Mul(left, right) : {
+			switch(calcAST(left, vars)) {
+                Some(l): {
+					switch(calcAST(right, vars)) {
+                    	Some(r): Some(l * r);
+                    	None(): None(); 
+					}
+            	};
+                None(): None();
+            };
+		}
+		Add(left, right) : {
+			switch(calcAST(left, vars)) {
+                Some(l): {
+					switch(calcAST(right, vars)) {
+                    	Some(r): Some(l + r);
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+	}
+}
+
+calc(expr : string, vars : Tree<string, int>) -> Maybe<int> {
+	ast = parsic(initGrammar(), expr, defaultPegActions);
+    println(ast);
+	calcAST(ast, vars);
+}
+
+
+initTree(n : int, array : [int]) -> Tree<string, int> {
+    if (n <= 0) {
+        makeTree();
+    } 
+    else {
+        tree : Tree<string, int> = initTree(n - 4, array);
+		setTree(tree, fromCharCode(array[n - 3]), s2i(fromCharCode(array[n - 1])));
+    }
+}
+	
+getUserInput() -> string {
+	println("Enter the vars: ");
+	rtrim2(readUntil("\n"), "\n");
+}
+
+
+
+main() {
+	userInput = getUserInput();
+	array : [int] = s2a(userInput);
+	variablesTree = initTree(length(array), array);
+
+
+	switch(calc(" 4 + x * 3 * y + z  ", variablesTree)) {
+		Some(val): println(val);
+		None(): println("can't count result");
+	}
+}

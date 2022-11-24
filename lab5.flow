@@ -1,0 +1,16 @@
+import string;
+import lingo/pegcode/driver;
+import mygrammar;
+
+lingoGrammarOp: ref Maybe<[PegOp]> = ref None();
+
+lingoGrammar() {
+    onlyOnce(lingoGrammarOp, \ -> {
+    compilePegGrammar("#include mylingo.lingo");
+	});
+}
+
+main() {
+	ast = parsic(lingoGrammar(), " 4 * 3 * 2 + 6 * 7 + 8 + 9 + 10 * 11", defaultPegActions);
+    println(ast);
+}

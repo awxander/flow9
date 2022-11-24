@@ -1,0 +1,31 @@
+import string;
+import lingo/pegcode/driver;
+import mygrammar;
+
+lingoGrammarOp: ref Maybe<[PegOp]> = ref None();
+
+AST2s(e : Expr) -> string {
+    switch(e) {
+        Int(const) : {
+			i2s(const);
+		}
+        Mul(left, right) : { 
+			"(" + AST2s(left) + " * " + AST2s(right) + ")";
+		}
+        Add(left, right) : { 
+			"(" + AST2s(left) + " + " + AST2s(right) + ")";
+		}
+	}
+}
+
+lingoGrammar() {
+    onlyOnce(lingoGrammarOp, \ -> {
+    compilePegGrammar("#include mylingo.lingo");
+	});
+}
+
+main() {
+    ast = parsic(lingoGrammar(), "4 * 3 * 2 + 6 * 7 + 8 + 9 + 10 * 11", defaultPegActions);
+    println(ast);
+    println(AST2s(ast));
+}

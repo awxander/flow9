@@ -1,0 +1,44 @@
+import mygrammar11;
+
+
+main() {
+	userInput = getUserInput();
+	array : [int] = s2a(userInput);
+	vars = initTree(length(array), array);
+	
+	expr : Expr = s2e("((x ^ y) * (z + ((1 - 0) * (1 / 1))))");
+	
+	switch(calc(expr, vars)) {
+		Some(val): {
+			println("VARIABLES:");
+			println(vars);
+			println("EXPRESSION:");
+			println(e2s(expr));
+			println("RESULT:");
+			println(r2s(val));
+		};
+		None(): println("ERROR");
+	}
+	
+	simple_expr = simplifyFully(expr);
+	switch(calc(simple_expr, vars)) {
+		Some(val): {
+			println("SIMPLIFIED EXPRESSION:");
+			println(e2s(simple_expr));
+			println("RESULT FOR SIMPLIFIED EXPRESSION:");
+			println(r2s(val));
+		};
+		None(): println("ERROR");
+	}
+
+	diff_expr_z = simplifyFully(diff(simple_expr, "z"));
+	switch(calc(diff_expr_z, vars)) {
+		Some(val): {
+			println("DIFFERENTIATED EXPRESSION:");
+			println(e2s(diff_expr_z));
+			println("RESULT FOR DIFFERENTIATED EXPRESSION:");
+			println(r2s(val));
+		};
+		None(): println("ERROR");
+	}
+}

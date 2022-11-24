@@ -1,0 +1,155 @@
+import string;
+import ds/tree;
+import runtime;
+import sys/system;
+import math/math;
+import lingo/pegcode/parsic;
+import lingo/pegcode/driver;
+import fs/filesystem;
+import ds/array;
+import mygrammar9;
+
+arithGrammarOp: ref Maybe<[PegOp]> = ref None();
+
+initGrammar() {
+	onlyOnce(arithGrammarOp, \ -> {
+		compilePegGrammar("#include mylingo9.lingo");
+	});
+}
+
+calcAST(e : Expr, vars : Tree<string, Rational>) -> Maybe<Rational> {
+	switch(e) {
+		Var(symbol) : {
+			switch(lookupTree(vars, symbol)) {
+				Some(val): Some(val);
+				None(): {
+					println("ERROR :: variable is not initialized");
+					None();
+				};
+			}
+		}
+		IntConst(const) : {
+			Some(Rational(const, 1));
+		}
+		RatConst(const) : {
+			Some(const);
+		}
+		Minus(r) : {
+			switch(calcAST(r, vars)) {
+				Some(expr): Some(minusRational(expr));
+				None(): None();
+			};
+		}
+		Div(l, r) : {
+			switch(calcAST(l, vars)) {
+                Some(left): {
+					switch(calcAST(r, vars)) {
+						Some(right): Some(divRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+		Sub(l, r) : {
+			switch(calcAST(l, vars)) {
+                Some(left): {
+					switch(calcAST(r, vars)) {
+                    	Some(right): Some(subRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+		Mul(l, r) : {
+			switch(calcAST(l, vars)) {
+                Some(left): {
+					switch(calcAST(r, vars)) {
+                    	Some(right): Some(multRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+		Sum(l, r) : {
+			switch(calcAST(l, vars)) {
+                Some(left): {
+					switch(calcAST(r, vars)) {
+                    	Some(right): Some(sumRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+		Pow(l, r) : {
+			switch(calcAST(l, vars)) {
+                Some(left): {
+					switch(calcAST(r, vars)) {
+                    	Some(right): Some(powRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+	}
+}
+
+calcSimplified(expr : string, vars : Tree<string, Rational>) -> Maybe<Rational> {
+	calcAST(simplify(parsic(initGrammar(), expr, defaultPegActions)), vars);
+	ast = simplify(parsic(initGrammar(), expr, defaultPegActions));
+	println("SIMPLE AST:");
+    println(ast);
+	calcAST(ast, vars)
+}
+
+calc(expr : string, vars : Tree<string, Rational>) -> Maybe<Rational> {
+	ast = parsic(initGrammar(), expr, defaultPegActions);
+	println("AST:");
+    println(ast);
+	calcAST(ast, vars)
+}
+
+initTree(n : int, array : [int]) -> Tree<string, Rational> {
+    if (n <= 0) {
+        makeTree();
+    } 
+    else {
+        tree : Tree<string, Rational> = initTree(n - 6, array);
+		setTree(tree, fromCharCode(array[n - 5]), Rational(s2i(fromCharCode(array[n - 3])), s2i(fromCharCode(array[n - 1]))));
+    }
+}
+
+getUserInput() -> string {
+	println("Enter the vars: ");
+	rtrim2(readUntil("\n"), "\n");
+}
+
+main() {
+	userInput = getUserInput();
+	array : [int] = s2a(userInput);
+	vars = initTree(length(array), array);
+
+	expr = "((x ^ y) * (z + ((1 / 1) * (1 / 0))))";
+	switch(calc(expr, vars)) {
+		Some(val): {
+			println("EXPRESSION:");
+			println(expr);
+			println("VARIABLES:");
+			println(vars);
+			println("RESULT:");
+			println(r2s(val));
+		};
+		None(): println("ERROR");
+	}
+	switch(calcSimplified(expr, vars)) {
+		Some(val): {
+			println("RESULT FOR SIMPLIFIED EXPRESSION:");
+			println(r2s(val));
+		};
+		None(): println("ERROR");
+	}
+}

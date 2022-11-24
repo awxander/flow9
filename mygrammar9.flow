@@ -1,0 +1,78 @@
+import myrationals;
+
+export {
+    simplify(e : Expr) -> Expr;
+}
+
+Expr ::= Var, IntConst, RatConst, Minus, Div, Sub, Mul, Sum, Pow;
+Var : (name : string);
+IntConst : (value : int);
+RatConst : (value : Rational);
+Minus : (e : Expr);
+Div : (left : Expr, right : Expr);
+Sub : (left: Expr, right : Expr);
+Mul : (left : Expr, right : Expr);
+Sum : (left : Expr, right : Expr);
+Pow : (left : Expr, right : Expr);
+
+simplify(e : Expr) -> Expr {
+    switch(e) {
+		Var(symbol): {
+			Var(symbol);
+		} IntConst(const): {
+			IntConst(const);
+		} RatConst(const): {
+			RatConst(const);
+		} Minus(r): {
+			Minus(simplify(r));
+		} Div(l, r) : {
+			if (l == r) {
+				IntConst(1)
+			} else if (r == IntConst(1)) {
+				l
+			} else {
+				Div(simplify(l), simplify(r))
+			};
+		}
+		Sub(l, r) : {
+			if (l == r) {
+				IntConst(0)
+			} else if (r == IntConst(0)) {
+				l
+			} else if (l == IntConst(0)) {
+				Minus(r)
+			} else {
+				Sub(simplify(l), simplify(r))
+			};
+		}
+		Mul(l, r) : {
+			if (l == IntConst(0) || r == IntConst(0)) {
+				IntConst(0)
+			} else if (l == IntConst(1)) {
+				r
+			} else if (r == IntConst(1)) {
+				l
+			} else {
+				Mul(simplify(l), simplify(r))
+			};
+		}
+		Sum(l, r) : {
+			if (l == IntConst(0) && r == IntConst(0)) {
+				IntConst(0)
+			} else if (l == IntConst(0)) {
+				r
+			} else if (r == IntConst(0)) {
+				l
+			} else {
+				Sum(simplify(l), simplify(r))
+			};
+		}
+		Pow(l, r) : {
+			if (l == IntConst(1) || r == IntConst(0)) {
+				IntConst(1)
+			} else {
+				Pow(simplify(l), simplify(r))
+			}
+        }
+    }
+}

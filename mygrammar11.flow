@@ -1,0 +1,260 @@
+import string;
+import ds/tree;
+import runtime;
+import sys/system;
+import math/math;
+import lingo/pegcode/parsic;
+import lingo/pegcode/driver;
+import fs/filesystem;
+import ds/array;
+import myrationals;
+
+export {
+    simplifyOnce(e : Expr) -> Expr;
+	simplifyFully(e : Expr) -> Expr;
+    diff(expr : Expr, var : string) -> Expr;
+    s2e(expr : string) -> Expr;
+    e2s(e : Expr) -> string;
+    calc(expr : Expr, vars : Tree<string, Rational>) -> Maybe<Rational>;
+	getUserInput() -> string;
+	initTree(n : int, array : [int]) -> Tree<string, Rational>;
+}
+
+Expr ::= Var, IntConst, RatConst, Minus, Div, Sub, Mul, Sum, Pow;
+Var : (name : string);
+IntConst : (value : int);
+RatConst : (value : Rational);
+Minus : (e : Expr);
+Div : (left : Expr, right : Expr);
+Sub : (left: Expr, right : Expr);
+Mul : (left : Expr, right : Expr);
+Sum : (left : Expr, right : Expr);
+Pow : (left : Expr, right : Expr);
+
+
+simplifyOnce(e : Expr) -> Expr {
+    switch(e) {
+		Var(symbol): {
+			Var(symbol);
+		} IntConst(const): {
+			IntConst(const);
+		} RatConst(const): {
+			RatConst(const);
+		} Minus(r): {
+			Minus(simplifyOnce(r));
+		} Div(l, r) : {
+			if (l == r) {
+				IntConst(1)
+			} else if (r == IntConst(1)) {
+				l
+			} else {
+				Div(simplifyOnce(l), simplifyOnce(r))
+			};
+		} Sub(l, r) : {
+			if (l == r) {
+				IntConst(0)
+			} else if (r == IntConst(0)) {
+				l
+			} else if (l == IntConst(0)) {
+				Minus(r)
+			} else {
+				Sub(simplifyOnce(l), simplifyOnce(r))
+			};
+		} Mul(l, r) : {
+			if (l == IntConst(0) || r == IntConst(0)) {
+				IntConst(0)
+			} else if (l == IntConst(1)) {
+				r
+			} else if (r == IntConst(1)) {
+				l
+			} else {
+				Mul(simplifyOnce(l), simplifyOnce(r))
+			};
+		} Sum(l, r) : {
+			if (l == IntConst(0) && r == IntConst(0)) {
+				IntConst(0)
+			} else if (l == IntConst(0)) {
+				r
+			} else if (r == IntConst(0)) {
+				l
+			} else {
+				Sum(simplifyOnce(l), simplifyOnce(r))
+			};
+		} Pow(l, r) : {
+			if (l == IntConst(1) || r == IntConst(0)) {
+				IntConst(1)
+			} else {
+				Pow(simplifyOnce(l), simplifyOnce(r))
+			}
+        }
+    }
+}
+
+simplifyFully(e : Expr) -> Expr {
+	e1 = simplifyOnce(e);
+	if (e2s(e1) == e2s(e)) {
+		e;
+	} else {
+		simplifyFully(e1);
+	}
+}
+
+diff(expr: Expr, varname: string) -> Expr {
+    switch (expr) {
+        Var(name) : {
+            if (name == varname) {
+				IntConst(1)
+            } else {
+				IntConst(0)
+			}
+        };
+        IntConst(const) : {
+			IntConst(0);
+		} RatConst(const) : {
+			RatConst(Rational(0, 0));
+		} Minus(e) : {
+			Minus(diff(e, varname));
+		} Div(l, r): {
+			Div(Sub(Mul(diff(l, varname), r), Mul(l, diff(r, varname))), Mul(r, r));
+		} Sub(l, r): {
+			Sub(diff(l, varname), diff(r, varname));
+		} Mul(l, r): {
+			Sum(Mul(diff(l, varname), r), Mul(l, diff(r, varname)));
+		} Sum(l, r): {
+			Sum(diff(l, varname), diff(r, varname));
+		} Pow(l, r): {
+			Mul(Mul(r, Pow(l, Sub(r, IntConst(1)))), diff(l, varname));
+		}
+    }
+}
+
+initTree(n : int, array : [int]) -> Tree<string, Rational> {
+    if (n <= 0) {
+        makeTree();
+    } 
+    else {
+        tree : Tree<string, Rational> = initTree(n - 6, array);
+		setTree(tree, fromCharCode(array[n - 5]), Rational(s2i(fromCharCode(array[n - 3])), s2i(fromCharCode(array[n - 1]))));
+    }
+}
+
+getUserInput() -> string {
+	println("Enter the vars: ");
+	rtrim2(readUntil("\n"), "\n");
+}
+
+arithGrammarOp: ref Maybe<[PegOp]> = ref None();
+initGrammar() {
+	onlyOnce(arithGrammarOp, \ -> {
+		compilePegGrammar("#include mylingo9.lingo");
+	});
+}
+
+s2e(expr : string) -> Expr {
+    parsic(initGrammar(), expr, defaultPegActions);
+}
+
+e2s(e : Expr) -> string {
+    switch (e) {
+        Pow(l, r): {
+			concatStrings(["(", e2s(l), "^", e2s(r), ")"]);
+		} Sum(l, r): {
+			concatStrings(["(", e2s(l), "+", e2s(r), ")"]);
+		} Mul(l, r): {
+			concatStrings(["(", e2s(l), "*", e2s(r), ")"]);
+		} Sub(l, r): {
+			concatStrings(["(", e2s(l), "-", e2s(r), ")"]);
+		} Div(l, r): {
+			concatStrings(["(", e2s(l), "/", e2s(r), ")"]);
+		} Minus(expr): {
+			concatStrings(["-", e2s(expr)]);
+		} RatConst(const): {
+			r2s(const);
+		} IntConst(const): {
+			i2s(const);
+		} Var(name): {
+			name;
+		}
+    }
+}
+
+calc(expr : Expr, vars : Tree<string, Rational>) -> Maybe<Rational> {
+	switch(expr) {
+		Var(symbol) : {
+			switch(lookupTree(vars, symbol)) {
+				Some(val): Some(val);
+				None(): {
+					println("ERROR :: variable is not initialized");
+					None();
+				};
+			}
+		}
+		IntConst(const) : {
+			Some(Rational(const, 1));
+		}
+		RatConst(const) : {
+			Some(const);
+		}
+		Minus(r) : {
+			switch(calc(r, vars)) {
+				Some(e): Some(minusRational(e));
+				None(): None();
+			};
+		}
+		Div(l, r) : {
+			switch(calc(l, vars)) {
+                Some(left): {
+					switch(calc(r, vars)) {
+                    	Some(right): Some(divRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+		Sub(l, r) : {
+			switch(calc(l, vars)) {
+                Some(left): {
+					switch(calc(r, vars)) {
+                    	Some(right): Some(subRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+		Mul(l, r) : {
+			switch(calc(l, vars)) {
+                Some(left): {
+					switch(calc(r, vars)) {
+                    	Some(right): Some(multRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+		Sum(l, r) : {
+			switch(calc(l, vars)) {
+                Some(left): {
+					switch(calc(r, vars)) {
+                    	Some(right): Some(sumRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+		Pow(l, r) : {
+			switch(calc(l, vars)) {
+                Some(left): {
+					switch(calc(r, vars)) {
+                    	Some(right): Some(powRationals(left, right));
+                    	None(): None();
+					}
+            	};
+                None(): None();
+            };
+		}
+	}
+}

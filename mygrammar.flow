@@ -1,0 +1,4 @@
+Expr ::= Int, Mul, Add;
+Int : (value : int);
+Mul : (left : Expr, right : Expr);
+Add : (left : Expr, right : Expr);

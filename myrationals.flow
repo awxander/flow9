@@ -1,0 +1,65 @@
+import math/math;
+import string;
+
+export {
+    Rational(num: int, den: int);
+
+    multRationals(l: Rational, r: Rational) -> Rational;
+    divRationals(l: Rational, r: Rational) -> Rational;
+    powRationals(l: Rational, r: Rational) -> Rational;
+    sumRationals(l: Rational, r: Rational) -> Rational;
+    subRationals(l: Rational, r: Rational) -> Rational;
+    minusRational(r: Rational) -> Rational;
+    r2s(e: Rational) -> string;
+}
+
+multRationals(l: Rational, r: Rational) -> Rational {
+    cdiv = gcd(l.num * r.num, l.den * r.den);
+    Rational((l.num * r.num)/cdiv, (l.den * r.den)/cdiv);
+}
+
+divRationals(l: Rational, r: Rational) -> Rational {
+    cdiv = gcd(l.num * r.den, l.den * r.num);
+    Rational((l.num * r.den)/cdiv, (l.den * r.num)/cdiv);
+}
+
+powRationals(num : Rational, power : Rational) -> Rational {
+    if (power.num == 0) {
+        Rational(1, 1);
+    } else {
+        multRationals(num, powRationals(num, Rational(power.num-1, power.den)));
+    }
+}
+
+sumRationals(l: Rational, r: Rational) -> Rational {
+    if (l.den == r.den) {
+        Rational(l.num + r.num, l.den);
+    } else {
+        cdiv = gcd(l.num * r.den + r.num * l.den, l.den * r.den);
+        Rational((l.num * r.den + r.num * l.den)/cdiv, (l.den * r.den)/cdiv);
+    }
+}
+
+subRationals(l: Rational, r: Rational) -> Rational {
+    if (l.den == r.den) {
+        Rational(l.num - r.num, l.den);
+    } else {
+        cdiv = gcd(l.num * r.den - r.num * l.den, l.den * r.den);
+        Rational((l.num * r.den - r.num * l.den)/cdiv, (l.den * r.den)/cdiv);
+    }
+}
+
+minusRational(r: Rational) -> Rational {
+    Rational(-r.num, r.den);
+}
+
+r2s(e: Rational) -> string {
+    if (e.den == 0) {
+        concatStrings(["DIVISION BY ", i2s(e.den), " EXCEPTION"]);
+    }
+    else if (e.den == 1) {
+        i2s(e.num);
+    } else {
+        concatStrings([i2s(e.num), "/", i2s(e.den)]);
+    }
+}
